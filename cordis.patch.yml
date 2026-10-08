@@ -13,7 +13,7 @@
 # '@deepseek-ai/dsh-client-ui-science'`, and third-party bundles shorten it too
 # (`dshmarket` -> `id: dsh-market`, `dsh-mnemon` -> `id: mnemon`). Renaming the
 # row to `dsh-science-skill` would break that namespace symmetry without any
-# runtime benefit. Recorded in docs/plan.md and dev-notes/decisions.md.
+# runtime benefit.
 
 - insert:
     - id: science-skill
