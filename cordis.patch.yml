@@ -1,0 +1,20 @@
+# Loader patch inserted into the profile's cordis config by
+# `dsh plugin --profile <name> add` / by the app's profile composer.
+#
+# `name:` must be the package name — that is what the loader resolves and
+# requires. `id:` is this row's loader identity, deliberately kept as the
+# plugin's own namespace (`science-skill`: the same string the client uses for
+# `SKILL_REFERENCE_SOURCE` and for its `settings.section` / `sidebar.panellist`
+# slot ids).
+#
+# Deliberate deviation from dsh-plugin-studio's `references/contracts.md`
+# ("insert id 与 name 都必须等于包名"): the real ecosystem does not work that
+# way. The official row is `- id: ui-science / name:
+# '@deepseek-ai/dsh-client-ui-science'`, and third-party bundles shorten it too
+# (`dshmarket` -> `id: dsh-market`, `dsh-mnemon` -> `id: mnemon`). Renaming the
+# row to `dsh-science-skill` would break that namespace symmetry without any
+# runtime benefit. Recorded in docs/plan.md and dev-notes/decisions.md.
+
+- insert:
+    - id: science-skill
+      name: dsh-science-skill

@@ -1,0 +1,15 @@
+# Dependencies — installed by the toolchain, never committed.
+node_modules/
+
+# Build output.
+#
+# `lib/` is deliberately NOT ignored: this package is installed from a checkout
+# (`link:` / `file:`) and DSH loads the plugin straight out of `lib/`, so a clone
+# without a Node toolchain still runs. Uncomment the line below if you would
+# rather build on install and keep the tree source-only.
+# lib/
+
+# Editor and OS noise.
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,483 @@
+/* Skill board: a category tab bar over a four-column card grid.
+ *
+ * Two rendering rules matter here and are easy to get wrong:
+ *
+ *  - Every custom property is written `var(--token, <fallback>)`. The build
+ *    scopes a `--dsw-sci-*` palette block onto `:where(.ss-settings-root,
+ *    .ss-tree-root)`, so this sheet does inherit it. The fallbacks are still
+ *    written because the detail dialog mounts at the end of the document rather
+ *    than inside the board's root: a token that resolved only by accident of
+ *    nesting would break silently the day that dialog moved. The host's own
+ *    `--dsw-alias-*` values live on `body` and resolve everywhere; only the sci
+ *    palette needs covering.
+ *  - Class names are the authored ones. `scripts/build-styles.mjs` prefixes any
+ *    name this sheet shares with the settings sheet (`.root`, `.card`, `.status`,
+ *    `.s`/`.b`/`.d`, …) and rewrites both the stylesheet and the class-name map
+ *    together, so the component keeps reading `styles.card` either way.
+ */
+
+/* The tab bar wraps by design: the category list grows with use, and a single
+   row would either overflow or squeeze the labels to nothing. */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------- search -- */
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  padding: 7px 10px;
+  border: 1px solid var(--dsw-alias-border-l3, rgba(0, 0, 0, 0.14));
+  border-radius: 9px;
+  background: var(--dsw-sci-paper-2, #fffdf8);
+  color: var(--dsw-alias-label-primary, #22292e);
+  outline: none;
+}
+
+.searchInput:focus {
+  border-color: var(--dsw-sci-teal, #0e6b5c);
+}
+
+.searchCount {
+  flex: none;
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary, #8b9298);
+}
+
+/* ------------------------------------------------------------------ tabs -- */
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(0, 0, 0, 0.1));
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #5b646b);
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.tab:hover {
+  background: var(--dsw-sci-paper, #f7f4ee);
+}
+
+/* The selected tab is the only solid fill in the bar, so the current category
+   is readable at a glance without a separate label. */
+.tabActive,
+.tabActive:hover {
+  background: var(--dsw-sci-teal, #0e6b5c);
+  border-color: var(--dsw-sci-teal, #0e6b5c);
+  /* Ink of the paper the accent sits on, not a fixed white: the accent token
+     turns light in dark mode, where white-on-teal falls to about 2.4:1. */
+  color: var(--dsw-sci-paper-2, #fffdf8);
+  font-weight: 600;
+}
+
+.tabActive .tabCount {
+  background: rgba(0, 0, 0, 0.16);
+  color: inherit;
+}
+
+.tabIcon {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+
+.tabLabel {
+  white-space: nowrap;
+}
+
+.tabCount {
+  flex: none;
+  font-size: 10.5px;
+  line-height: 1.6;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--dsw-sci-paper-3, rgba(0, 0, 0, 0.06));
+  color: inherit;
+}
+
+/* ------------------------------------------------------------------ grid -- */
+
+/* Four columns by default; the container is a fixed-width column, so the
+   narrower steps are what keep a card from collapsing once the window (and with
+   it the panel) gets small. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ------------------------------------------------------------------ card -- */
+
+/* The card body is the "tell me more" target: an `<article>` carrying
+   `role="button"`, so it can host the real summon button without nesting one
+   button inside another. Enter/Space are handled in the component, since a role
+   alone brings no key behaviour. */
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--dsw-alias-border-l1, rgba(60, 50, 30, 0.06));
+  border-radius: 12px;
+  background: var(--dsw-sci-paper-2, #fffdf8);
+  color: var(--dsw-alias-label-primary, #22292e);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+
+.card:hover,
+.card:focus-visible {
+  border-color: var(--dsw-sci-teal, #0e6b5c);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.cardAvatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--dsw-sci-teal-soft, #e3efe9);
+  color: var(--dsw-sci-teal-ink, #0a5146);
+  flex: none;
+}
+
+/* Revealed on card hover, and whenever the pill itself holds focus. The
+   `:focus-visible` arm is not optional: the pill is a real button now, so
+   tabbing from the card onto it focuses the pill while the card is no longer
+   `:focus-visible`, and without this rule the focused control would be invisible.
+   No `pointer-events: none` — that was there when the pill was decoration, and
+   it would make the primary action unclickable. */
+.summon {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 3px 10px;
+  border: none;
+  border-radius: 999px;
+  background: var(--dsw-sci-ink, #22292e);
+  /* Paper-toned label so the pill flips with the ink token; a fixed white would
+     sit on the light ink of dark mode. */
+  color: var(--dsw-sci-paper-2, #fffdf8);
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.card:hover .summon,
+.card:focus-visible .summon,
+.summon:focus-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.summon:focus-visible {
+  outline: 2px solid var(--dsw-sci-teal, #0e6b5c);
+  outline-offset: 2px;
+}
+
+.cardTitle {
+  width: 100%;
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardInvoke {
+  width: 100%;
+  font-family: var(--ds-font-family-code, ui-monospace, monospace);
+  font-size: 10.5px;
+  color: var(--dsw-alias-label-tertiary, #8b9298);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Clamped to three lines, and reserved at that height: cards sit in a grid, so
+   a two-line summary must not make its row shorter than its neighbours'. */
+.cardSummary {
+  width: 100%;
+  min-height: 52px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-secondary, #5b646b);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Pushed to the bottom edge so every card's tags line up across the row. */
+.cardFoot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 2px;
+}
+
+/* The card's category pill. It replaces the static tag this footer used to
+   carry and keeps that tag's size, so a card looks unchanged until the pointer
+   is over it. The action is the same one the settings page offers, which is why
+   the popup below is drawn with that page's measurements. */
+.catPicker {
+  position: relative;
+  display: inline-flex;
+}
+
+.catPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  line-height: 1.7;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--dsw-sci-paper-3, rgba(0, 0, 0, 0.06));
+  color: var(--dsw-alias-label-secondary, #5b646b);
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.12s ease;
+}
+
+.catPill:hover { border-color: var(--dsw-sci-teal, #0e6b5c); }
+
+.catPillText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.catCaret {
+  font-size: 7px;
+  color: var(--dsw-alias-label-tertiary, #8b9298);
+}
+
+/* Popup ownership. A card that does not rise lets the next card in the grid
+   paint over its menu: the neighbours are siblings in one stacking context, so
+   the menu's own z-index cannot lift it past them. The host carries the rise. */
+.card[data-popup-open] {
+  z-index: 30;
+}
+
+.catDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 172px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 5px;
+  background: var(--dsw-sci-paper-2, #fffdf8);
+  border: 1px solid var(--dsw-alias-border-l3, rgba(0, 0, 0, 0.14));
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(60, 50, 30, 0.14);
+}
+
+/* Flipped above the pill when the room below cannot hold the list (the caller
+   measures and sets `data-drop="up"`), so the options never open past the
+   bottom edge of the window. */
+.catDropdown[data-drop='up'] {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.catOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  text-align: left;
+  padding: 5px 9px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary, #22292e);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.catOption:hover { background: var(--dsw-sci-paper-3, rgba(0, 0, 0, 0.06)); }
+
+.catOptionLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.catOptionActive {
+  background: color-mix(in srgb, var(--dsw-sci-teal) 12%, transparent);
+  color: var(--dsw-sci-teal-ink, #0a5146);
+  font-weight: 600;
+}
+
+.catCheck {
+  font-size: 10px;
+  flex: none;
+}
+
+/* Result of the board's own write, under the search row. */
+.note {
+  font-size: 11.5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+
+.noteOk {
+  background: var(--dsw-alias-state-success-tertiary, rgba(14, 107, 92, 0.12));
+  border-color: var(--dsw-alias-state-success-primary, rgba(14, 107, 92, 0.3));
+  color: var(--dsw-alias-state-success-primary, #0e6b5c);
+}
+
+.noteErr {
+  background: var(--dsw-alias-interactive-bg-hover-danger, rgba(192, 57, 43, 0.12));
+  border-color: var(--dsw-alias-state-error-primary, rgba(192, 57, 43, 0.3));
+  color: var(--dsw-alias-state-error-primary, #c0392b);
+}
+
+.status {
+  font-size: 9.5px;
+  line-height: 1.7;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.status.s {
+  background: var(--dsw-alias-state-success-tertiary, rgba(14, 107, 92, 0.12));
+  color: var(--dsw-alias-state-success-primary, #0e6b5c);
+}
+
+.status.b {
+  background: var(--dsw-alias-state-warn-tertiary, rgba(179, 84, 30, 0.12));
+  color: var(--dsw-alias-state-warn-label, #b3541e);
+}
+
+.status.d {
+  background: var(--dsw-alias-interactive-bg-hover-danger, rgba(192, 57, 43, 0.12));
+  color: var(--dsw-alias-state-error-primary, #c0392b);
+}
+
+/* ---------------------------------------------------------- empty states -- */
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 36px 16px;
+  border: 1px dashed var(--dsw-alias-border-l2, rgba(0, 0, 0, 0.1));
+  border-radius: 12px;
+  text-align: center;
+}
+
+.stateTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-secondary, #5b646b);
+}
+
+.stateHint {
+  font-size: 11.5px;
+  color: var(--dsw-alias-label-tertiary, #8b9298);
+}
+
+/* A touch device has no hover to reveal the pill with, and the pill is now the
+   only write action on the card — leaving it at `opacity: 0` would hide the
+   action behind an invisible but still tappable target. */
+@media (hover: none) {
+  .summon {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The lift and the pill are the only motion here, so reduced motion keeps the
+   reveal (the pill still appears) and drops the travel. */
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .summon,
+  .tab {
+    transition: none;
+  }
+
+  .card:hover,
+  .card:focus-visible {
+    transform: none;
+  }
+
+  .summon {
+    transform: none;
+  }
+}

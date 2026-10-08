@@ -1,0 +1,782 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 2px 20px;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-family: Georgia, 'Songti SC', 'Times New Roman', serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--dsw-alias-label-primary, #22292e);
+}
+
+.subtitle {
+  font-size: 12px;
+  color: var(--dsw-alias-label-tertiary, #8b9298);
+  line-height: 1.6;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.count {
+  font-size: 12px;
+  color: var(--dsw-alias-label-tertiary, #8b9298);
+}
+
+/* Search box in the toolbar: keeps the imported-count and the import button on
+   one line while it takes the room the cards use below. */
+.searchInput {
+  flex: 1;
+  min-width: 160px;
+  font-family: inherit;
+  font-size: 12.5px;
+  padding: 6px 10px;
+  border: 1px solid var(--dsw-alias-border-l3, rgba(0, 0, 0, 0.14));
+  border-radius: 7px;
+  background: var(--dsw-sci-paper-2, #fffdf8);
+  color: var(--dsw-alias-label-primary, #22292e);
+  outline: none;
+}
+
+.searchInput:focus { border-color: var(--dsw-sci-teal, #0e6b5c); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--dsw-alias-border-l3, rgba(0, 0, 0, 0.14));
+  background: var(--dsw-sci-paper-2, #fffdf8);
+  color: var(--dsw-alias-label-primary, #22292e);
+  border-radius: 7px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.btn:hover { background: var(--dsw-sci-paper-3, rgba(0, 0, 0, 0.06)); }
+
+.btn.primary {
+  background: var(--dsw-sci-teal, #0e6b5c);
+  border-color: var(--dsw-sci-teal, #0e6b5c);
+  /* Paper-toned label rather than the static white: the accent token turns
+     light in dark mode, where a fixed white label loses its contrast. */
+  color: var(--dsw-sci-paper-2, #fffdf8);
+}
+
+.btn.primary:hover { background: var(--dsw-sci-teal-ink, #0a5146); }
+
+.btn.danger {
+  background: var(--dsw-sci-paper-2, #fffdf8);
+  border-color: var(--dsw-alias-state-error-primary);
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.btn.danger:hover { background: var(--dsw-alias-interactive-bg-hover-danger); }
+
+.btn:disabled { opacity: 0.5; cursor: default; }
+
+/* Manual path fallback row (shown when the native picker is unavailable). */
+.manualRow {
+  display: flex;
+  gap: 8px;
+}
+
+.manualInput {
+  flex: 1;
+  font-family: var(--ds-font-family-code, ui-monospace, monospace);
+  font-size: 12px;
+  padding: 6px 9px;
+  border: 1px solid var(--dsw-alias-border-l3, rgba(0, 0, 0, 0.14));
+  border-radius: 6px;
+  background: var(--dsw-sci-paper-2, #fffdf8);
+  color: var(--dsw-alias-label-primary, #22292e);
+  outline: none;
+}
+
+.manualInput:focus { border-color: var(--dsw-sci-teal, #0e6b5c); }
+
+/* Skill default directory: where "+ 添加目录" installs the skill it copies. A
+   settings block rather than another toolbar control, because the choice
+   outlives the one import it applies to and is worth reading before a folder
+   is picked. */
+.importDir {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(0, 0, 0, 0.1));
+  border-radius: 10px;
+  background: var(--dsw-sci-paper-2, #fffdf8);
+}
+
+.importDirHead {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.importDirTitle {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--dsw-alias-label-primary, #22292e);
+}
+
+.importDirHint {
+  font-size: 11.5px;
+  color: var(--dsw-alias-label-tertiary, #8b9298);
+  line-height: 1.6;
+}
+
+.importDirRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The path is the whole message, so it wraps instead of being ellipsised: a
+   truncated tail would hide the leaf directory the user actually chose. */
+.importDirPath {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--ds-font-family-code, ui-monospace, monospace);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-secondary, #5b646b);
+  padding: 4px 8px;
+  border: 1px solid var(--dsw-alias-border-l1, rgba(60, 50, 30, 0.06));
+  border-radius: 6px;
+  background: var(--dsw-sci-paper, #f7f4ee);
+  word-break: break-all;
+}
+
+.status { font-size: 12px; line-height: 1.5; }
+.status.ok { color: var(--dsw-alias-state-success-primary); }
+.status.err { color: var(--dsw-alias-state-error-primary); }
+.status.pending { color: var(--dsw-alias-state-warn-label); }
+.status.warn { color: var(--dsw-alias-state-warn-label); }
+
+/* Category filter chips */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+.filter {
+  font-size: 11.5px;
+  padding: 3px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(0, 0, 0, 0.1));
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #5b646b);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.filter:hover { background: var(--dsw-sci-paper-3, rgba(0, 0, 0, 0.06)); }
+
+/* Active chip: the accent mixed into transparency rather than teal-soft, whose
+   dark value sits too close to the surface to read as "selected". */
+.filter.active {
+  font-weight: 600;
+  background: color-mix(in srgb, var(--dsw-sci-teal) 12%, transparent);
+  border-color: color-mix(in srgb, var(--dsw-sci-teal) 34%, transparent);
+  color: var(--dsw-sci-teal-ink, #0a5146);
+}
+
+/* Designed line glyph for the category chip/dropdown (mirrors the sidebar tree). */
+.chipIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+  margin-right: 4px;
+  color: var(--dsw-alias-label-secondary, #5b646b);
+}
+
+.catOptionLabel {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.addFilter {
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 10px;
+  font-weight: 700;
+  color: var(--dsw-sci-teal, #0e6b5c);
+  border-style: dashed;
+}
+
+.chipWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.chipEmpty {
+  font-size: 9.5px;
+  color: var(--dsw-alias-label-tertiary, #8b9298);
+  margin-left: 3px;
+}
+
+.chipManage {
+  font-size: 9px;
+  padding: 1px 4px;
+  border: none;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary, #8b9298);
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 6px;
+}
+
+.chipManage:hover { background: var(--dsw-sci-paper-3, rgba(0, 0, 0, 0.08)); color: var(--dsw-sci-teal-ink, #0a5146); }
+
+.chipMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 150px;
+  padding: 5px;
+  background: var(--dsw-sci-paper-2, #fffdf8);
+  border: 1px solid var(--dsw-alias-border-l3, rgba(0, 0, 0, 0.14));
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(60, 50, 30, 0.12);
+}
+
+.menuItem {
+  font-size: 12px;
+  text-align: left;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary, #22292e);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.menuItem:hover { background: var(--dsw-sci-paper-3, rgba(0, 0, 0, 0.06)); }
+.menuItem:disabled { opacity: 0.5; cursor: default; }
+
+.menuDanger { color: var(--dsw-alias-state-error-primary); }
+.menuDanger:hover { background: var(--dsw-alias-interactive-bg-hover-danger); }
+
+.menuInput {
+  flex: none;
+  width: 170px;
+  margin-bottom: 2px;
+}
+
+/* Category icon field: one button showing the icon the form will store, plus a
+   grid that unfolds on demand. Both category forms (add, rename) embed it. */
+.iconPick {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.iconPickBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border: 1px solid var(--dsw-alias-border-l3, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+  background: var(--dsw-sci-paper-2, #fffdf8);
+  color: var(--dsw-alias-label-secondary, #5a6470);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.iconPickBtn:hover {
+  border-color: color-mix(in srgb, var(--dsw-sci-teal) 55%, var(--dsw-alias-border-l3));
+  color: var(--dsw-sci-teal-ink, #0a5146);
+}
+
+.iconPickCaret {
+  font-size: 8px;
+  line-height: 1;
+  color: var(--dsw-alias-label-tertiary, #8b9298);
+}
+
+/* Unfolded grid: positioned so the form keeps its height while the glyphs
+   float above the rows below it. */
+.iconGrid {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 25;
+  display: grid;
+  grid-template-columns: repeat(8, 22px);
+  gap: 2px;
+  max-height: 132px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--dsw-alias-border-l3, rgba(0, 0, 0, 0.12));
+  border-radius: 8px;
+  background: var(--dsw-sci-paper-2, #fffdf8);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--dsw-sci-ink) 14%, transparent);
+}
+
+.iconCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #5a6470);
+  cursor: pointer;
+}
+
+.iconCell:hover { background: var(--dsw-sci-paper-3, rgba(0, 0, 0, 0.06)); }
+
+.iconCellActive {
+  background: color-mix(in srgb, var(--dsw-sci-teal) 14%, transparent);
+  color: var(--dsw-sci-teal-ink, #0a5146);
+}
+
+.iconCellSvg { display: block; }
+
+.addRow {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+/* Skill cards */
+.list {
+  display: grid;
+  /* Two columns by default: one on a narrow panel, three when it is wide. */
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 10px;
+}
+
+.card {
+  position: relative;
+  /* No `overflow: hidden` here. The category pill is the card's last row and its
+     dropdown opens below the card's own bottom edge, so clipping to the card box
+     cut the menu in half at the border (user-reported). The accent rail below
+     carries the corner radius itself instead of relying on the card to clip. */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 11px 13px 10px 16px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(0, 0, 0, 0.1));
+  border-radius: 12px;
+  background: var(--dsw-sci-paper-2, #fffdf8);
+  transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease, background 0.14s ease;
+}
+
+/* On: a 3px accent rail on the leading edge marks an activated skill. */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  /* Follows the card's own 12px radius: the card no longer clips this rail. */
+  border-radius: 12px 0 0 12px;
+  background: var(--dsw-sci-teal, #0e6b5c);
+  transition: opacity 0.14s ease;
+}
+
+.card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--dsw-sci-teal) 55%, var(--dsw-alias-border-l2));
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--dsw-sci-ink) 7%, transparent),
+              0 8px 22px color-mix(in srgb, var(--dsw-sci-ink) 9%, transparent);
+}
+
+/* Off: the card sinks into the page (page-toned fill, faint hairline, no rail)
+   and its title drops a level. Separation comes from surface and weight rather
+   than dimming the whole card, which would push the 12px summary below 3:1. */
+.card[data-off='true'] {
+  background: var(--dsw-sci-paper, #f7f4ee);
+  border-color: var(--dsw-alias-border-l1, rgba(60, 50, 30, 0.06));
+}
+
+.card[data-off='true']::before {
+  opacity: 0;
+}
+
+/* Category glyph: accent-tinted chip carrying this category's own icon. The
+   tint mixes from the accent rather than teal-soft, whose dark value sits all
+   but on top of the card fill and would erase the chip in dark mode. */
+.cardGlyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  flex: none;
+  margin-top: 1px;
+  background: color-mix(in srgb, var(--dsw-sci-teal) 13%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--dsw-sci-teal) 24%, transparent);
+  color: var(--dsw-sci-teal-ink, #0a5146);
+}
+
+.card[data-off='true'] .cardGlyph {
+  opacity: 0.55;
+}
+
+.card:hover {
+  border-color: var(--dsw-sci-teal, #0e6b5c);
+  box-shadow: 0 2px 8px rgba(60, 50, 30, 0.06);
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cardName {
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--dsw-alias-label-primary, #22292e);
+  line-height: 1.4;
+  word-break: break-word;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Off: the title drops a level, so an activated card reads as the brighter one. */
+.card[data-off='true'] .cardName {
+  font-weight: 560;
+  color: var(--dsw-alias-label-secondary, #5b646b);
+}
+
+/* In-place name editor: the same slot, size and weight as the title it
+   replaces, so entering edit mode never reflows the card. */
+.cardNameInput {
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--dsw-alias-label-primary, #22292e);
+  line-height: 1.4;
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--dsw-sci-teal) 45%, transparent);
+  border-radius: 6px;
+  background: var(--dsw-sci-paper, #f7f4ee);
+  outline: none;
+}
+
+.cardActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.miniBtn {
+  font-size: 10.5px;
+  line-height: 1;
+  padding: 3px 7px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(0, 0, 0, 0.1));
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary, #8b9298);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.miniBtn:hover { background: var(--dsw-sci-paper-3, rgba(0, 0, 0, 0.06)); color: var(--dsw-alias-label-primary, #22292e); }
+
+/* Delete stays quiet until its card is hovered or focused: a red button on
+   every card made the whole grid read as a wall of warnings. */
+.dangerMini {
+  border-color: transparent;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary, #8b9298);
+  opacity: 0;
+  transition: opacity 0.14s ease, color 0.14s ease, background 0.14s ease;
+}
+
+.card:hover .dangerMini,
+.card:focus-within .dangerMini {
+  opacity: 1;
+}
+
+.dangerMini:hover,
+.dangerMini:focus-visible {
+  color: var(--dsw-alias-state-error-primary);
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+}
+
+/* Card bottom management row: category picker pill on the left, delete right. */
+.cardManage {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.catPicker {
+  position: relative;
+  display: inline-flex;
+}
+
+.catPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  padding: 2px 9px;
+  border-radius: 10px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(0, 0, 0, 0.1));
+  background: var(--dsw-sci-paper-3, rgba(0, 0, 0, 0.06));
+  color: var(--dsw-alias-label-secondary, #5b646b);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: border-color 0.12s ease;
+}
+
+.catPill:hover { border-color: var(--dsw-sci-teal, #0e6b5c); }
+
+.catPillText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
+}
+
+.catCaret {
+  font-size: 8px;
+  color: var(--dsw-alias-label-tertiary, #8b9298);
+}
+
+/* Popup ownership. An open popup must outrank every sibling that is painted
+   after its host — a card's hover rule gives it a transform, which makes it a
+   stacking context, so the popup's own z-index can no longer lift it above the
+   next card. The host carries the rise instead, and every popup host is listed
+   here so a new one cannot quietly stay below. */
+.card[data-popup-open],
+.chipWrap[data-popup-open],
+.iconPick[data-popup-open] {
+  z-index: 30;
+}
+
+.catDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 172px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 5px;
+  background: var(--dsw-sci-paper-2, #fffdf8);
+  border: 1px solid var(--dsw-alias-border-l3, rgba(0, 0, 0, 0.14));
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(60, 50, 30, 0.14);
+}
+
+.catOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  text-align: left;
+  padding: 5px 9px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary, #22292e);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.catOption:hover { background: var(--dsw-sci-paper-3, rgba(0, 0, 0, 0.06)); }
+
+/* Flipped above the pill when the room below cannot hold the whole list (the
+   caller measures and sets `data-drop="up"`), so the menu is never opened
+   downwards past the visible area of the settings panel. */
+.catDropdown[data-drop='up'] {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.catOptionActive {
+  background: color-mix(in srgb, var(--dsw-sci-teal) 12%, transparent);
+  color: var(--dsw-sci-teal-ink, #0a5146);
+  font-weight: 600;
+}
+
+.catCheck {
+  font-size: 10px;
+  flex: none;
+}
+
+.deleteConfirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cardCat {
+  flex: none;
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--dsw-sci-paper-3, rgba(0, 0, 0, 0.06));
+  color: var(--dsw-alias-label-secondary, #5b646b);
+  white-space: nowrap;
+}
+
+/* The summary always shows in full — never clamped — so a reader can judge a
+   skill from the card alone. */
+.cardDesc {
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary, #5b646b);
+  line-height: 1.6;
+}
+
+/* In-place summary editor: it takes the summary's own slot at the full card
+   width, so it neither floats over the text nor squeezes the title row. */
+.cardDescInput {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--dsw-alias-label-primary, #22292e);
+  line-height: 1.6;
+  padding: 4px 6px;
+  border: 1px solid color-mix(in srgb, var(--dsw-sci-teal) 45%, transparent);
+  border-radius: 7px;
+  background: var(--dsw-sci-paper, #f7f4ee);
+  outline: none;
+  resize: vertical;
+}
+
+.cardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.invoke {
+  font-family: var(--ds-font-family-code, ui-monospace, monospace);
+  font-size: 10.5px;
+  color: var(--dsw-alias-label-tertiary, #8b9298);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge {
+  font-size: 9.5px;
+  padding: 1.5px 6px;
+  border-radius: 5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  flex: none;
+}
+.badge.s { background: var(--dsw-alias-state-success-tertiary); color: var(--dsw-alias-state-success-primary); }
+/* Beta reads as "experimental" in ochre rather than as a warning. */
+.badge.b {
+  background: color-mix(in srgb, var(--dsw-sci-terra) 13%, transparent);
+  color: var(--dsw-sci-terra);
+}
+.badge.d { background: var(--dsw-alias-interactive-bg-hover-danger); color: var(--dsw-alias-state-error-primary); }
+
+/* Activation switch, sharing the card's top-right row with the edit button. */
+.gateToggle {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex: none;
+  user-select: none;
+}
+
+/* The checkbox stays in the DOM for keyboard and assistive technology; the
+   control the user sees is the track/thumb pair below it. */
+.gateToggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gateTrack {
+  display: flex;
+  align-items: center;
+  width: 30px;
+  height: 17px;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--dsw-alias-border-l2, rgba(0, 0, 0, 0.18));
+  transition: background 160ms ease;
+}
+
+.gateThumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--dsw-static-neutral-bluish-00, #ffffff);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+  transition: transform 160ms ease;
+}
+
+/* On: the track lights up in the research accent and the thumb slides right. */
+.gateOn .gateTrack { background: var(--dsw-sci-teal, #12b5a5); }
+.gateOn .gateThumb { transform: translateX(13px); }
+
+.gateToggle input:focus-visible + .gateTrack {
+  outline: 2px solid var(--dsw-sci-teal, #12b5a5);
+  outline-offset: 2px;
+}
+
+.empty {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--dsw-alias-label-tertiary, #8b9298);
+  font-size: 13px;
+}

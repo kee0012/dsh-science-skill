@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "science-agent-catalog-skill",
+  "title": "Science Agent 技能目录记录",
+  "description": "看板导航、任务路由、引导表单渲染共用的单一技能记录。字段贴近 SKILL.md/README 事实，不臆造。",
+  "type": "object",
+  "required": ["id", "name", "category", "summary", "trigger_keywords", "inputs", "outputs", "status", "invoke"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "技能目录名，全库唯一；应等于 science/skills/<id>/ 的目录名。"
+    },
+    "frontmatter_name": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "SKILL.md frontmatter name，当与目录名不一致时显式声明（如 nature-proposal-writer → researchwrite）。默认等于 id。"
+    },
+    "dir_name": {
+      "type": "string",
+      "description": "技能文件夹的真实名字，仅当它不等于 id 时出现：用户直接把带版本号/中文标题的文件夹粘进默认目录、由刷新收录的技能就是这样（如 id=originpro、dir_name=OriginPro 2.0.0）。读取 SKILL.md、校验目录是否还在、删除技能都必须用它定位文件夹；默认等于 id。"
+    },
+    "name": { "type": "string", "description": "技能标识名（英文，等于 frontmatter_name 或目录 id）。" },
+    "display_name": {
+      "type": "string",
+      "description": "用户在界面上设定的中文显示名。与 name 分开保存，播种/升级不会覆盖它；缺省时界面回落显示 name。"
+    },
+    "display_summary": {
+      "type": "string",
+      "description": "用户在界面上设定的中文简介。与技能自带的 summary（SKILL.md 原文）分开保存，升级技能不会冲掉它。"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["literature", "writing", "topic", "data-analysis", "figure", "review", "presentation", "lab", "outcome", "document", "design", "misc", "internal"],
+      "description": "一级分类。topic/outcome/document/design/misc 为 2026-09 扩充；design 是用户自定义分类。internal = 不单独入看板的共享支持包（如 nature-shared）。"
+    },
+    "subcategory": { "type": "string", "description": "二级细分，可选。" },
+    "summary": { "type": "string", "description": "一句话中文用途（看板卡片与路由摘要用）。" },
+    "description_en": { "type": "string", "description": "SKILL.md frontmatter description 原文（路由参考），可选。" },
+    "trigger_keywords": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "触发词/短语（中英），路由先用此精确匹配。"
+    },
+    "inputs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "引导表单输入字段说明（P2 渲染表单用）。"
+    },
+    "outputs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "产物类型说明。"
+    },
+    "depends_on": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "依赖的共享技能 id（如 nature-shared）；加载时一并保留。"
+    },
+    "requires": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "运行依赖：python/r/mcp/外部服务/浏览器等，空 = 纯提示词。"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["stable", "beta", "draft"],
+      "description": "沿用 nature README 状态标签。"
+    },
+    "invoke": {
+      "type": "string",
+      "pattern": "^/[a-z0-9-]+$",
+      "description": "聊天触发名（/skill-name），引导式 = 打开工作台表单。"
+    }
+  }
+}

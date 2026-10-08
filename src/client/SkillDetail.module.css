@@ -1,0 +1,255 @@
+/* Skill detail dialog: the read-only view of one skill, opened by clicking a card.
+ *
+ * Same two rendering rules as the board sheet, and for the same reasons:
+ *
+ *  - Every custom property is written `var(--token, <fallback>)`. The sci palette
+ *    is scoped by the build onto the panels' root classes, but the dialog is
+ *    mounted at the end of the document rather than inside the board's root, so
+ *    it must not assume it inherits those values; the host's own `--dsw-alias-*`
+ *    live on `body` and do resolve.
+ *  - Class names are the authored ones. `scripts/build-styles.mjs` prefixes any
+ *    name this sheet shares with a sibling sheet and rewrites the stylesheet and
+ *    the class-name map together, so the component keeps reading `styles.title`
+ *    whether or not `title` ends up prefixed.
+ *
+ * The overlay is fixed rather than absolutely positioned inside the panel: the
+ * panel is a grid item in the centre column, and a dialog clipped to it would
+ * cut off the markdown body on a short viewport. Fixed also means the dialog
+ * keeps the viewport's full height while the panel's scroll stays behind it.
+ */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(20, 24, 27, 0.42);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(720px, 100%);
+  max-height: min(80vh, 760px);
+  overflow-y: auto;
+  padding: 18px 20px 20px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(0, 0, 0, 0.1));
+  border-radius: 14px;
+  background: var(--dsw-sci-paper-2, #fffdf8);
+  color: var(--dsw-alias-label-primary, #22292e);
+  box-shadow: 0 18px 48px rgba(16, 20, 23, 0.28);
+  outline: none;
+}
+
+/* ------------------------------------------------------------------ head -- */
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Circular, like the card avatar, so the dialog reads as the same object. */
+.headGlyph {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--dsw-sci-teal-soft, #e3efe9);
+  color: var(--dsw-sci-teal-ink, #0a5146);
+}
+
+.headText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.headMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.invoke {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--dsw-sci-paper-3, #efeae0);
+  color: var(--dsw-sci-ink-2, #5b646b);
+}
+
+.catTag,
+.statusTag {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--dsw-alias-border-l3, rgba(0, 0, 0, 0.14));
+  color: var(--dsw-sci-ink-2, #5b646b);
+}
+
+.headActions {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The dialog's primary action, and the only write it performs. */
+.try {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--dsw-sci-teal, #0e6b5c);
+  /* Paper-toned label so the pill flips with the accent instead of staying
+     white on a light accent in dark mode. */
+  color: var(--dsw-sci-paper-2, #fffdf8);
+  cursor: pointer;
+}
+
+.try:hover {
+  background: var(--dsw-sci-teal-ink, #0a5146);
+}
+
+.try:focus-visible,
+.close:focus-visible,
+.example:focus-visible {
+  outline: 2px solid var(--dsw-sci-teal, #0e6b5c);
+  outline-offset: 2px;
+}
+
+.close {
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--dsw-alias-border-l3, rgba(0, 0, 0, 0.14));
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dsw-sci-ink-2, #5b646b);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--dsw-sci-paper-3, #efeae0);
+}
+
+/* --------------------------------------------------------------- content -- */
+
+.summary {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--dsw-sci-ink-2, #5b646b);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--dsw-alias-border-l3, rgba(0, 0, 0, 0.08));
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--dsw-sci-ink, #22292e);
+}
+
+/* Covers every "nothing to show here" case — loading, an absent route, and a
+   skill the model has not written examples for — so the dialog never renders an
+   empty block the user has to interpret. */
+.hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--dsw-sci-ink-2, #5b646b);
+  opacity: 0.85;
+}
+
+.exampleList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* A row is one complete action, so it is a button rather than a list item with
+   a handler on a child: the whole line is the target, which is what the send
+   glyph on the right promises. */
+.example {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 9px 12px;
+  border: 1px solid var(--dsw-alias-border-l3, rgba(0, 0, 0, 0.1));
+  border-radius: 10px;
+  background: var(--dsw-sci-paper, #f7f4ee);
+  color: var(--dsw-alias-label-primary, #22292e);
+  cursor: pointer;
+}
+
+.example:hover {
+  border-color: var(--dsw-sci-teal, #0e6b5c);
+  background: var(--dsw-sci-teal-soft, #e3efe9);
+}
+
+.exampleText {
+  flex: 1;
+  min-width: 0;
+}
+
+.exampleIcon {
+  flex: none;
+  display: inline-flex;
+  color: var(--dsw-sci-teal-ink, #0a5146);
+}
+
+/* Bounded so a long SKILL.md cannot push the dialog past the viewport and bury
+   the header the user opened it for. */
+.markdownScroll {
+  max-height: 320px;
+  overflow: auto;
+  padding: 12px 14px;
+  border: 1px solid var(--dsw-alias-border-l3, rgba(0, 0, 0, 0.1));
+  border-radius: 10px;
+  background: var(--dsw-sci-paper, #f7f4ee);
+}
+
+.markdown {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--dsw-sci-ink, #22292e);
+}
