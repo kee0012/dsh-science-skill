@@ -104,25 +104,35 @@ async function loadCategories(): Promise<CategoryRow[]> {
  * describes the same feature: a directory the harness never accepted as a skill
  * source lists skills the model cannot load. It is `undefined` — not `false` —
  * when the host does not report it, so an older host is never shown as broken.
+ *
+ * `legacyBackups` names the `.<id>.old-<timestamp>` folders versions up to
+ * 2.0.5 left behind when they replaced a skill. It is a list rather than a count
+ * because the panel offers to delete exactly those folders, and an older host
+ * that does not report it answers with an empty list, which hides the offer.
  * @returns the directory and, when the host reports it, whether the provider
- *   registration succeeded.
+ *   registration succeeded, plus the retired folders still on disk.
  */
 async function loadImportSettings(): Promise<{
   defaultSkillDir: string
   providerRegistered: boolean | undefined
+  legacyBackups: string[]
 }> {
   try {
     const data = await json<{
       ok: boolean
       defaultSkillDir?: string
       providerRegistered?: boolean
+      legacyBackups?: string[]
     }>(`${API_BASE}/import-settings`)
     return {
       defaultSkillDir: typeof data?.defaultSkillDir === 'string' ? data.defaultSkillDir : '',
       providerRegistered: typeof data?.providerRegistered === 'boolean' ? data.providerRegistered : undefined,
+      legacyBackups: Array.isArray(data?.legacyBackups)
+        ? data.legacyBackups.filter((name): name is string => typeof name === 'string' && name !== '')
+        : [],
     }
   } catch {
-    return { defaultSkillDir: '', providerRegistered: undefined }
+    return { defaultSkillDir: '', providerRegistered: undefined, legacyBackups: [] }
   }
 }
 
@@ -213,6 +223,15 @@ export function SkillSettingsSection({ pickDirectory }: SkillSettingsSectionProp
   const [providerRegistered, setProviderRegistered] = useState<boolean | undefined>(undefined)
   /** A rescan of every skill root is in flight (the 刷新 button). */
   const [rescanning, setRescanning] = useState(false)
+  /**
+   * `.<id>.old-<timestamp>` folders an older version of this plugin left in the
+   * skill directory, reported by the host and shown as a cleanup button. An
+   * empty list is both "nothing to clean" and "the host cannot say", which are
+   * the same thing to a button that must not appear for either.
+   */
+  const [legacyBackups, setLegacyBackups] = useState<string[]>([])
+  /** The 清理旧版本 button is waiting on the host. */
+  const [cleaning, setCleaning] = useState(false)
 
   // Pending confirmations, keyed by skill id / category key.
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
@@ -275,6 +294,7 @@ export function SkillSettingsSection({ pickDirectory }: SkillSettingsSectionProp
     setCategories(cats)
     setDefaultSkillDir(importSettings.defaultSkillDir)
     setProviderRegistered(importSettings.providerRegistered)
+    setLegacyBackups(importSettings.legacyBackups)
   }, [])
 
   const refresh = useCallback(async (): Promise<void> => {
@@ -343,9 +363,10 @@ export function SkillSettingsSection({ pickDirectory }: SkillSettingsSectionProp
    *
    * The import always overwrites: the folder the user picks is the folder they
    * want, so a re-import of a skill they already have means they forgot or they
-   * downloaded a newer version, and stopping to ask only costs a click. The host
-   * keeps the previous copy as a `.<id>.old-<timestamp>` folder and keeps the
-   * Chinese name, category and examples of the record it replaces.
+   * downloaded a newer version, and stopping to ask only costs a click. The copy
+   * it replaces is deleted outright — and any `.<id>.old-<timestamp>` folder an
+   * earlier version parked there goes with it — while the Chinese name, category
+   * and examples of the record survive.
    * @param path - skill folder the user picked or typed.
    */
   const doImportPath = useCallback(async (path: string): Promise<void> => {
@@ -469,6 +490,42 @@ export function SkillSettingsSection({ pickDirectory }: SkillSettingsSectionProp
       flash('err', String(error))
     } finally {
       setRescanning(false)
+    }
+  }
+
+  /**
+   * Delete the `.<id>.old-<timestamp>` folders earlier versions left behind.
+   *
+   * Overwriting a skill used to copy the folder it replaced to a dot-prefixed
+   * backup beside it, so a directory that has seen a few updates holds stale
+   * copies of skills the user replaced — they read as skill folders to anyone
+   * browsing it, and they are never what the user wants. The host deletes only
+   * names it recognizes as its own retired backups, and only when asked: this is
+   * the user's own directory, and no scan may delete from it on its own.
+   */
+  const cleanupBackups = async (): Promise<void> => {
+    setCleaning(true)
+    setMsg(null)
+    try {
+      const res = await fetch(`${API_BASE}/skills/cleanup-backups`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+        cache: 'no-store',
+      })
+      const data = await res.json() as { ok?: boolean; removed?: string[]; error?: string; note?: string }
+      if (data?.ok === true) {
+        const kept = Math.max(0, legacyBackups.length - (data.removed?.length ?? 0))
+        const note = data.note ?? '已清理旧版本备份。'
+        flash('ok', kept > 0 ? `${note}另有 ${kept} 个未能删除。` : note)
+        await refresh()
+      } else {
+        flash('err', data?.error ?? '清理失败')
+      }
+    } catch (error) {
+      flash('err', String(error))
+    } finally {
+      setCleaning(false)
     }
   }
 
@@ -710,12 +767,28 @@ export function SkillSettingsSection({ pickDirectory }: SkillSettingsSectionProp
         >
           {rescanning ? '扫描中…' : '刷新'}
         </button>
+        {/*
+          Only rendered when the host found something: an empty list is also how
+          an older host answers, and a button that can only ever say "没有需要
+          清理的" is worse than no button.
+        */}
+        {legacyBackups.length > 0 && (
+          <button
+            type="button"
+            className={styles.btn}
+            disabled={busy || cleaning}
+            onClick={() => void cleanupBackups()}
+            title={`删除旧版本残留文件夹：${legacyBackups.slice(0, 3).join('、')}${legacyBackups.length > 3 ? ' 等' : ''}`}
+          >
+            {cleaning ? '清理中…' : `清理旧版本（${legacyBackups.length}）`}
+          </button>
+        )}
         <button
           type="button"
           className={styles.btn + ' ' + styles.primary}
           disabled={busy}
           onClick={() => void addDirectory()}
-          title="添加技能文件夹；若该技能已存在，直接覆盖更新（旧文件保留为备份）"
+          title="添加技能文件夹；若该技能已存在，直接覆盖更新（旧版本会被删除，不保留备份）"
         >
           {busy ? '处理中…' : '+ 添加目录'}
         </button>

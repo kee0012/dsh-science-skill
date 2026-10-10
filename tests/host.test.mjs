@@ -990,15 +990,22 @@ test('re-importing an existing skill replaces it and says so', async () => {
     // user forgot they had, and pasting a newer download over the old copy, are
     // the same gesture and must not stop to ask.
     writeFileSync(join(source, 'gamma-skill', 'SKILL.md'), '---\nname: gamma-skill\ndescription: Second copy.\n---\n')
+    // A backup an earlier version of this plugin left for this same skill. An
+    // overwrite has to retire it too, or the pile only stops growing instead of
+    // shrinking.
+    mkdirSync(join(root, 'skills', '.gamma-skill.old-1700000000000'), { recursive: true })
     const again = json(call(routes, 'POST', `${api}/skills/import`, { path: join(source, 'gamma-skill'), overwrite: true }))
     assert.equal(again.ok, true)
     assert.equal(again.overwritten, true)
     assert.match(again.note, /已覆盖更新技能「伽马」/)
     assert.match(readFileSync(join(root, 'skills', 'gamma-skill', 'SKILL.md'), 'utf8'), /Second copy\./)
-    // The folder it replaced is kept as a backup rather than deleted outright.
-    assert.ok(
-      readdirSync(join(root, 'skills')).some((name) => /^\.gamma-skill\.old-\d+$/.test(name)),
-      'the replaced folder must be kept as a backup',
+    // The folder it replaced is deleted, not parked beside the new one: the user
+    // picked the version they want, and a directory that keeps every version it
+    // has ever held is one nobody can read.
+    assert.deepEqual(
+      readdirSync(join(root, 'skills')).filter((name) => /^\.gamma-skill\.old-\d+$/.test(name)),
+      [],
+      'the replaced folder must not be kept as a backup',
     )
 
     // Without the flag the host still refuses, so a caller that wants to confirm
@@ -1034,7 +1041,11 @@ test('re-importing a skill that was adopted replaces the folder it lives in', as
     assert.equal(imported.ok, true)
     assert.equal(imported.overwritten, true)
     assert.equal(existsSync(join(mine, 'Messy Name')), false, 'the replaced folder must be gone, not shadowed')
-    assert.ok(readdirSync(mine).some((name) => /^\.messy-skill\.old-\d+$/.test(name)))
+    assert.equal(
+      readdirSync(mine).some((name) => /^\.messy-skill\.old-\d+$/.test(name)),
+      false,
+      'the folder the import replaced must be deleted, not copied aside',
+    )
     assert.match(readFileSync(join(mine, 'messy-skill', 'SKILL.md'), 'utf8'), /Newer copy\./)
     // The record points at a folder named after it now, so the adopted-folder
     // indirection is gone rather than stale.
@@ -1043,5 +1054,41 @@ test('re-importing a skill that was adopted replaces the folder it lives in', as
   } finally {
     rmSync(mine, { recursive: true, force: true })
     rmSync(source, { recursive: true, force: true })
+  }
+})
+
+test('retired overwrite backups are listed and can be cleaned up', async () => {
+  const mine = mkdtempSync(join(tmpdir(), 'dsh-science-skill-retired-'))
+  const api = '/api/dsh-science-skill'
+  try {
+    const root = makeRoot()
+    const { routes } = await boot(root)
+    json(call(routes, 'POST', `${api}/import-settings`, { defaultSkillDir: mine }))
+
+    // What versions up to 2.0.5 left behind in the user's own directory: one
+    // folder per skill they ever replaced, sitting next to a skill they do have.
+    for (const name of ['.alpha-skill.old-1700000000000', '.beta-skill.old-1700000000001']) {
+      mkdirSync(join(mine, name), { recursive: true })
+      writeFileSync(join(mine, name, 'SKILL.md'), '---\nname: replaced\ndescription: Old copy.\n---\n')
+    }
+    mkdirSync(join(mine, 'kept-skill'), { recursive: true })
+    writeFileSync(join(mine, 'kept-skill', 'SKILL.md'), '---\nname: kept-skill\ndescription: Still here.\n---\n')
+
+    // The settings page needs the names to decide whether to offer the button at
+    // all, and the list is what makes the offer truthful.
+    const settings = json(call(routes, 'GET', `${api}/import-settings`))
+    assert.deepEqual(settings.legacyBackups.sort(), ['.alpha-skill.old-1700000000000', '.beta-skill.old-1700000000001'])
+
+    const cleaned = json(call(routes, 'POST', `${api}/skills/cleanup-backups`, {}))
+    assert.equal(cleaned.ok, true)
+    assert.equal(cleaned.removed.length, 2)
+    assert.equal(existsSync(join(mine, '.alpha-skill.old-1700000000000')), false)
+    assert.equal(existsSync(join(mine, '.beta-skill.old-1700000000001')), false)
+    // Only the retired backups go: a real skill folder is not this route's to
+    // delete, however it happens to be named.
+    assert.equal(existsSync(join(mine, 'kept-skill')), true)
+    assert.deepEqual(json(call(routes, 'GET', `${api}/import-settings`)).legacyBackups, [])
+  } finally {
+    rmSync(mine, { recursive: true, force: true })
   }
 })

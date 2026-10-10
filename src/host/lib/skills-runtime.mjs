@@ -79,8 +79,8 @@ function isKebab(id) {
  * `opts.intoDir` is the user's configured default import directory; when it is
  * absent or not absolute the skill lands in `<root>/skills`, which is the
  * historical behaviour and the root the provider scanned before the setting
- * existed. Staging, the overwrite backup and the final folder all derive from
- * this one value, so the staging rename can never be asked to cross a
+ * existed. Staging, the folder being replaced and the final folder all derive
+ * from this one value, so the staging rename can never be asked to cross a
  * filesystem boundary the destination itself does not cross.
  * @param root - data root.
  * @param opts - { intoDir?: string }
@@ -198,7 +198,7 @@ export function importSkillDir(root, srcDir, opts = {}) {
   const prior = readPriorRecord(root, finalId)
   // A skill adopted from a hand-copied folder sits in that folder while its
   // record is keyed by the frontmatter name. Re-importing it replaces that
-  // folder — with the same backup an ordinary overwrite gets — instead of
+  // folder — retiring it exactly the way an ordinary overwrite does — instead of
   // leaving a second copy of the same skill next to the freshly installed one.
   const adoptedName = recordDirName(prior, finalId)
   const adoptedPath = adoptedName === finalId ? undefined : join(installRoot, adoptedName)
@@ -209,11 +209,17 @@ export function importSkillDir(root, srcDir, opts = {}) {
   }
 
   const overwritten = existed === true || finalExists || adoptedExists
-  const replaced = finalExists ? finalTarget : adoptedExists ? adoptedPath : undefined
-  if (replaced !== undefined) cpSync(replaced, join(installRoot, `.${finalId}.old-${Date.now()}`), { recursive: true })
   mkdirSync(installRoot, { recursive: true })
   rmSync(finalTarget, { recursive: true, force: true })
   if (adoptedPath !== undefined && adoptedPath !== finalTarget) rmSync(adoptedPath, { recursive: true, force: true })
+  // Replacing a skill is destructive on purpose: the folder the user just picked
+  // *is* the version they want, so the one it replaces is deleted rather than
+  // parked beside it. Retiring the backups earlier versions of this plugin left
+  // behind (`.‹id›.old-‹timestamp›`) makes that promise retroactive — a user who
+  // re-imports a skill five times ends up with one folder, not six.
+  const retiredBackups = removeLegacyBackups(installRoot, { id: finalId }).removed
+  const adoptedBackups = adoptedName === finalId ? [] : removeLegacyBackups(installRoot, { id: adoptedName }).removed
+  retiredBackups.push(...adoptedBackups)
   try {
     renameSync(staging, finalTarget)
   } catch {
@@ -256,12 +262,85 @@ export function importSkillDir(root, srcDir, opts = {}) {
     // result differently for the two cases, and only the host knows which
     // happened (a first import of a brand-new folder overwrites nothing).
     overwritten,
+    // Retired `.<id>.old-<ts>` folders this import also deleted, so a caller can
+    // report "旧版本已删除" instead of leaving the user to wonder.
+    retiredBackups,
     error: undefined,
     // The skill's full description from its SKILL.md, untruncated: naming reads
     // this, and `summary` below is only the rail entry's short preview.
     description: finalVerdict.description,
     ...record,
   }
+}
+
+/**
+ * The folder name an earlier version of this plugin parked a replaced skill
+ * under: `.<id>.old-<timestamp>`, right next to the skill it replaced.
+ */
+const LEGACY_BACKUP_NAME = /^\.[a-z0-9]+(?:-[a-z0-9]+)*\.old-\d+$/
+
+/**
+ * The retired skill folders one or more skill roots still hold.
+ *
+ * Overwriting a skill used to copy the folder it replaced to
+ * `.<id>.old-<timestamp>` first. Those copies are backups of a version the user
+ * explicitly replaced: they read as skill folders to anyone browsing the
+ * directory, and re-importing a skill a few times leaves a growing pile of
+ * them. The write path no longer creates any — this reports the ones already on
+ * disk so the panel can offer to delete them.
+ * @param roots - skill directories to inspect; a single path is accepted too.
+ * @param opts - { id?: string } restricts the answer to one skill's backups.
+ * @returns `{ id, name, dir, path }` per backup found, ordered by name.
+ */
+export function listLegacyBackups(roots, opts = {}) {
+  const prefix = typeof opts?.id === 'string' && opts.id !== '' ? `.${opts.id}.old-` : undefined
+  const found = []
+  for (const dir of Array.isArray(roots) ? roots : [roots]) {
+    if (typeof dir !== 'string' || dir === '') continue
+    let entries
+    try {
+      entries = readdirSync(dir, { withFileTypes: true })
+    } catch {
+      // A root the user has not created yet, or one that is not readable, holds
+      // no backups; it is not an error worth failing a scan over.
+      continue
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory() || !LEGACY_BACKUP_NAME.test(entry.name)) continue
+      if (prefix !== undefined && !entry.name.startsWith(prefix)) continue
+      found.push({
+        // `.gamma-skill.old-1791…` → `gamma-skill`: the id the backup belonged to.
+        id: entry.name.slice(1, entry.name.indexOf('.old-')),
+        name: entry.name,
+        dir,
+        path: join(dir, entry.name),
+      })
+    }
+  }
+  return found.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+}
+
+/**
+ * Delete those retired folders.
+ * @param roots - skill directories to clean.
+ * @param opts - { id?: string } cleans one skill's backups only.
+ * @returns `{ removed, failed }` — the paths deleted, and `{ path, error }` for
+ *   each one that could not be (a file inside is locked, a permission is
+ *   missing). A failure is reported rather than thrown: an unrelated backup
+ *   must not turn a successful import into an error.
+ */
+export function removeLegacyBackups(roots, opts = {}) {
+  const removed = []
+  const failed = []
+  for (const entry of listLegacyBackups(roots, opts)) {
+    try {
+      rmSync(entry.path, { recursive: true, force: true })
+      removed.push(entry.path)
+    } catch (error) {
+      failed.push({ path: entry.path, error: error instanceof Error ? error.message : String(error) })
+    }
+  }
+  return { removed, failed }
 }
 
 /** Read a catalog record if present, tolerating a missing or unparsable file. */

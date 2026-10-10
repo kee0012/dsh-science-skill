@@ -1,6 +1,6 @@
 {
   "name": "dsh-science-skill",
-  "version": "2.0.0",
+  "version": "2.0.5",
   "description": "科研技能中心 for DeepSeek Harness: skill catalog, categories, per-session activation gate and a user-invocable /command rail.",
   "type": "module",
   "license": "MIT",
